@@ -1,36 +1,31 @@
 <?php
 
-namespace App\Models;
+namespace App\Models\Admin;
 
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Sessao extends Model
+class Assento extends Model
 {
     use HasUuids;
     protected $keyType = 'string';
     public $incrementing = false;
-    protected $table = 'sessoes';
+    protected $table = 'assentos';
 
     protected $fillable = [
-        "filme_id",
+        "id",
         "sala_id",
-        "data_hora",
-        "preco",
+        "fila",
+        "numero",
         "disponivel"
     ];
 
     protected $casts = [
-        "data_hora" => "timestamp",
-        "preco" => "decimal",
+        "fila" => "string",
+        "numero" => "integer",
         "disponivel" => "boolean"
     ];
-
-    public function filme(): BelongsTo
-    {
-        return $this->belongsTo(Filme::class, 'filme_id');
-    }
 
     public function sala(): BelongsTo
     {
