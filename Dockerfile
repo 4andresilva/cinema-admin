@@ -35,6 +35,8 @@ RUN composer install --no-dev --optimize-autoloader && \
 # Permissões corretas
 RUN chown -R www-data:www-data storage bootstrap/cache
 
+CMD php artisan migrate --force
+
 # Porta de exposição
 EXPOSE 8000
 
