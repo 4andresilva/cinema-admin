@@ -1,39 +1,39 @@
-FROM php:8.3-fpm
+# Stage 1 - Build Frontend (Vite)
+FROM node:18 AS frontend
+WORKDIR /app
+COPY package*.json ./
+RUN npm install
+COPY . .
+RUN npm run build
 
-# Argumentos padrão
-ARG user=andre
-ARG uid=1000
+# Stage 2 - Backend (Laravel + PHP + Composer)
+FROM php:8.3-fpm AS backend
 
-# Dependências do sistema
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    git curl nodejs npm \
-    libpng-dev libonig-dev libxml2-dev libzip-dev libpq-dev libicu-dev \
-    zip unzip \
-    && rm -rf /var/lib/apt/lists/*
+    git curl unzip libpq-dev libonig-dev libzip-dev zip \
+    && docker-php-ext-install pdo pdo_mysql mbstring zip
 
-# Extensões PHP
-RUN docker-php-ext-install pdo_pgsql mbstring exif pcntl bcmath gd intl zip
+# Install Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
-# Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
-
-# Criar usuário
-RUN useradd -G www-data,root -u $uid -d /home/$user $user && \
-    mkdir -p /home/$user/.composer && chown -R $user:$user /home/$user
-
-# Diretório de trabalho
 WORKDIR /var/www
 
-# Copiar aplicação existente
+# Copy app files
 COPY . .
 
-# Instalar dependências (sem sobrescrever nada existente)
-RUN composer install --no-dev --optimize-autoloader && \
-    npm install && npm run build && \
-    php artisan config:cache && php artisan route:cache
+# Copy built frontend from Stage 1
+COPY --from=frontend /app/public/dist ./public/dist
 
-# Permissões corretas
-RUN chown -R www-data:www-data storage bootstrap/cache
+# Install PHP dependencies
+RUN composer install --no-dev --optimize-autoloader
+
+# Laravel setup
+RUN php artisan config:clear && \
+    php artisan route:clear && \
+    php artisan view:clear
+
+CMD ["php-fpm"]
 
 # Porta de exposição
 EXPOSE 8000
