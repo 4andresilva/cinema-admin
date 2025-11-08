@@ -1,41 +1,36 @@
 # Stage 1 - Build Frontend (Vite)
 FROM node:18 AS frontend
 WORKDIR /app
-COPY package*.json ./
+COPY package*.json vite.config.* ./
 RUN npm install
-COPY . .
+COPY resources ./resources
+COPY public ./public
 RUN npm run build
 
 # Stage 2 - Backend (Laravel + PHP + Composer)
 FROM php:8.3-fpm AS backend
 
-# Install system dependencies
 RUN apt-get update && apt-get install -y \
     git curl unzip libpq-dev libonig-dev libzip-dev zip \
-    && docker-php-ext-install pdo pdo_mysql mbstring zip
+    && docker-php-ext-install pdo pdo_pgsql mbstring zip
 
-# Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www
 
-# Copy app files
 COPY . .
 
-# Copy built frontend from Stage 1
-COPY --from=frontend /app/public/dist ./public/dist
+# Copiar o build gerado pelo Vite
+COPY --from=frontend /app/public/build ./public/build
 
-# Install PHP dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Laravel setup
 RUN php artisan config:clear && \
     php artisan route:clear && \
     php artisan view:clear
 
 CMD ["php-fpm"]
 
-# Porta de exposição
 EXPOSE 8000
 
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
