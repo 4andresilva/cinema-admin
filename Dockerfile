@@ -35,10 +35,9 @@ RUN composer install --no-dev --optimize-autoloader && \
 # Permissões corretas
 RUN chown -R www-data:www-data storage bootstrap/cache
 
-CMD php artisan migrate --force
-
 # Porta de exposição
 EXPOSE 8000
 
-# Comando padrão (sem nginx, ideal pra testar)
-CMD php artisan serve --host=0.0.0.0 --port=8000
+COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+ENTRYPOINT ["entrypoint.sh"]
